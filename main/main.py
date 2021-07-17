@@ -5,7 +5,7 @@ import random
 from instagramy import *
 from instascrape import *
 import os
-import twint
+import tweepy
 import nest_asyncio
 from sessID import *
 nest_asyncio.apply()
@@ -14,16 +14,17 @@ default_prefix="h!"
 color_var=discord.Color.from_rgb(0, 235, 0)
 prefix={}
 
-global channel, SESSIONID
+global channel, SESSIONID, latest_tweet_id
 channel=0
+latest_tweet_id = 0
 SESSIONID=""
 old_posts=[]
 client=commands.Bot(command_prefix=default_prefix)
-if False:
-    consumer_key = ""
-    consumer_secret = ""
-    access_key = ""
-    access_secret = ""
+if True:
+    consumer_key = os.environ['consumer_key']
+    consumer_secret = os.environ['consumer_secret']
+    access_key = os.environ['access_key']
+    access_secret = os.environ['access_secret']
 
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_key, access_secret)
@@ -56,12 +57,23 @@ async def help_menu(ctx):
     embed.add_field(name="Questions", value="h!FAQ to drop your questions and our team will answer")
     embed.add_field(name="Addtional Queries", value="`ansh@econhacks.org`")
     await ctx.send(embed=embed)
-@tasks.loop(minutes=2)
+@tasks.loop(minutes=1)
 async def instag():
-    global channel, old_posts, SESSIONID
+    global channel, old_posts, SESSIONID, latest_tweet_id
     print(old_posts)
     print(channel)
-    if channel!=0:
+    new_tweets = api.user_timeline(screen_name="@Paz50982472",count=1, tweet_mode="extended")
+    if channel != 0:
+        if new_tweets[0].id != latest_tweet_id:
+          embed=discord.Embed(title="Twitter",description=new_tweets[0].full_text,color=color_var)
+          if 'media' in new_tweets[0].entities:
+            for image in  new_tweets[0].entities['media']:
+              latest_img = image['media_url']
+          embed.set_image(url=latest_img)
+          embed.set_thumbnail(url=new_tweets[0].user.profile_image_url)
+          latest_tweet_id = new_tweets[0].id
+          cha = client.get_channel(channel)
+          await cha.send(embed=embed)
         try:
             user=InstagramUser("alvinalvinalvin437",sessionid=SESSIONID)
             print(len(user.posts))
@@ -111,14 +123,21 @@ async def insta(ctx):
         print(SESSIONID)
 @client.command(aliases=["tweet"])
 async def fetch_tweets(ctx):
+    global latest_tweet_id  
     new_tweets = api.user_timeline(screen_name="@Paz50982472",count=1, tweet_mode="extended")
     for each in new_tweets:
-        latest_tweet = each.text
-    latest_tweet_id = 0
-    for each in new_tweets:
-        if 'media' in each.entities:
-            for image in  each.entities['media']:
-                latest_img = image['media_url']
+      latest_tweet = each.full_text
+      if 'media' in each.entities:
+        for image in  each.entities['media']:
+          latest_img = image['media_url']
+          
+          embed=discord.Embed(title="Twitter",description=latest_tweet, color=color_var)
+          embed.set_image(url=latest_img)
+          embed.set_thumbnail(url=new_tweets[0].user.profile_image_url)
+          latest_tweet_id = each.id
+          await ctx.send(embed=embed)
+
+    
     #update_channel = client.get_channel(twitter_update_channel)
     #await update_channel.send(tlist)
     
