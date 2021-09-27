@@ -799,4 +799,16 @@ async def quiz(ctx):
   else:
     await m.edit(embed=e2,components=[],)
 
+######################## MOTIVATIONAL POST ############################
+
+@client.command()
+async def motivate(ctx):
+  data=requests.get("https://efflux.herokuapp.com/post")
+  json_data=json.loads(data.text)
+  quote =json_data['p']
+  embed = discord.Embed(title="Motivational Post", color=0x00ff00) #creates embed
+  embed.set_image(url=quote)
+  embed.add_field(name='\u200B',value="Data fetched from [efflux API](https://efflux.herokuapp.com/)")
+  await ctx.reply(embed=embed)
+
 client.run(os.getenv('token'))
